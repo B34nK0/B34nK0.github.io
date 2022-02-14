@@ -20,18 +20,20 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="保持一份热爱，成为一个匠人">
-<meta property="og:type" content="website">
-<meta property="og:title" content="B34nK0">
-<meta property="og:url" content="http://example.com/tags/Java/index.html">
+  <meta name="description" content="概要本章讲解如何使用工具来分析 C&#x2F;C++ 程序中的bug 动态分析 dynamic analysis分析工具： Valgrind demo  summary  stack栈块   LLVM调试神器： sanitizers动态分析的局限性模糊测试 Fuzzing静态分析 Static analysislinter数据流分析 Dataflow analysis静态分析的局限性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="该如何查找C&#x2F;C++程序中的bug">
+<meta property="og:url" content="http://example.com/2022/02/11/%E8%AF%A5%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BEC-C-%E7%A8%8B%E5%BA%8F%E4%B8%AD%E7%9A%84bug/index.html">
 <meta property="og:site_name" content="B34nK0">
-<meta property="og:description" content="保持一份热爱，成为一个匠人">
+<meta property="og:description" content="概要本章讲解如何使用工具来分析 C&#x2F;C++ 程序中的bug 动态分析 dynamic analysis分析工具： Valgrind demo  summary  stack栈块   LLVM调试神器： sanitizers动态分析的局限性模糊测试 Fuzzing静态分析 Static analysislinter数据流分析 Dataflow analysis静态分析的局限性">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-02-11T01:54:24.000Z">
+<meta property="article:modified_time" content="2022-02-11T04:36:48.048Z">
 <meta property="article:author" content="B34nK0">
-<meta property="article:tag" content="c++、java、rust、js、python">
+<meta property="article:tag" content="Rust">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/tags/Java/">
+<link rel="canonical" href="http://example.com/2022/02/11/%E8%AF%A5%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BEC-C-%E7%A8%8B%E5%BA%8F%E4%B8%AD%E7%9A%84bug/">
 
 
 <script id="page-configurations">
@@ -39,12 +41,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>标签: Java | B34nK0</title>
+  <title>该如何查找C/C++程序中的bug | B34nK0</title>
   
 
 
@@ -146,77 +148,114 @@
         <div class="content-wrap">
           
 
-          <div class="content tag">
+          <div class="content post posts-expand">
             
 
+    
   
   
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <h2 class="collection-header">Java
-          <small>标签</small>
-        </h2>
-      </div>
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/02/11/%E8%AF%A5%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BEC-C-%E7%A8%8B%E5%BA%8F%E4%B8%AD%E7%9A%84bug/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/bean.svg">
+      <meta itemprop="name" content="B34nK0">
+      <meta itemprop="description" content="保持一份热爱，成为一个匠人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="B34nK0">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          该如何查找C/C++程序中的bug
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-02-11 09:54:24 / 修改时间：12:36:48" itemprop="dateCreated datePublished" datetime="2022-02-11T09:54:24+08:00">2022-02-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2022</span>
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>本章讲解如何使用工具来分析 C/C++ 程序中的bug</p>
+<h1 id="动态分析-dynamic-analysis"><a href="#动态分析-dynamic-analysis" class="headerlink" title="动态分析 dynamic analysis"></a>动态分析 dynamic analysis</h1><h2 id="分析工具：-Valgrind"><a href="#分析工具：-Valgrind" class="headerlink" title="分析工具： Valgrind"></a>分析工具： Valgrind</h2><ul>
+<li><p>demo</p>
+</li>
+<li><p>summary</p>
+</li>
+<li><p>stack栈块</p>
+</li>
+</ul>
+<h2 id="LLVM调试神器：-sanitizers"><a href="#LLVM调试神器：-sanitizers" class="headerlink" title="LLVM调试神器： sanitizers"></a>LLVM调试神器： sanitizers</h2><h2 id="动态分析的局限性"><a href="#动态分析的局限性" class="headerlink" title="动态分析的局限性"></a>动态分析的局限性</h2><h2 id="模糊测试-Fuzzing"><a href="#模糊测试-Fuzzing" class="headerlink" title="模糊测试 Fuzzing"></a>模糊测试 Fuzzing</h2><h1 id="静态分析-Static-analysis"><a href="#静态分析-Static-analysis" class="headerlink" title="静态分析 Static analysis"></a>静态分析 Static analysis</h1><h2 id="linter"><a href="#linter" class="headerlink" title="linter"></a>linter</h2><h2 id="数据流分析-Dataflow-analysis"><a href="#数据流分析-Dataflow-analysis" class="headerlink" title="数据流分析 Dataflow analysis"></a>数据流分析 Dataflow analysis</h2><h2 id="静态分析的局限性"><a href="#静态分析的局限性" class="headerlink" title="静态分析的局限性"></a>静态分析的局限性</h2>
     </div>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+    
+    
+    
 
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-02-09T14:20:40+08:00"
-              content="2022-02-09">
-          02-09
-        </time>
-      </div>
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Rust/" rel="tag"># Rust</a>
+          </div>
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/02/09/NPE-nullpoNullPointerException%E9%97%AE%E9%A2%98/" itemprop="url">
-            <span itemprop="name">NPE nullpoNullPointerException问题</span>
-          </a>
-      </div>
+        
 
-    </header>
-  </article>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-02-07T10:04:02+08:00"
-              content="2022-02-07">
-          02-07
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/02/07/WebFlux%E5%93%8D%E5%BA%94%E5%BC%8F%E7%BC%96%E7%A8%8B/" itemprop="url">
-            <span itemprop="name">WebFlux响应式编程</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/02/09/NPE-nullpoNullPointerException%E9%97%AE%E9%A2%98/" rel="prev" title="NPE nullpoNullPointerException问题">
+      <i class="fa fa-chevron-left"></i> NPE nullpoNullPointerException问题
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/02/14/Java%E9%A1%B9%E7%9B%AE%E5%8A%A0%E8%BD%BDQuantlib%E5%BA%93/" rel="next" title="Java项目加载Quantlib库">
+      Java项目加载Quantlib库 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
-  </div>
+      </footer>
+    
+  </article>
   
   
-  
-
   
 
 
 
           </div>
           
+    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -263,6 +302,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E5%88%86%E6%9E%90-dynamic-analysis"><span class="nav-number">2.</span> <span class="nav-text">动态分析 dynamic analysis</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%9E%90%E5%B7%A5%E5%85%B7%EF%BC%9A-Valgrind"><span class="nav-number">2.1.</span> <span class="nav-text">分析工具： Valgrind</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LLVM%E8%B0%83%E8%AF%95%E7%A5%9E%E5%99%A8%EF%BC%9A-sanitizers"><span class="nav-number">2.2.</span> <span class="nav-text">LLVM调试神器： sanitizers</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E5%88%86%E6%9E%90%E7%9A%84%E5%B1%80%E9%99%90%E6%80%A7"><span class="nav-number">2.3.</span> <span class="nav-text">动态分析的局限性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A8%A1%E7%B3%8A%E6%B5%8B%E8%AF%95-Fuzzing"><span class="nav-number">2.4.</span> <span class="nav-text">模糊测试 Fuzzing</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90-Static-analysis"><span class="nav-number">3.</span> <span class="nav-text">静态分析 Static analysis</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#linter"><span class="nav-number">3.1.</span> <span class="nav-text">linter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%B5%81%E5%88%86%E6%9E%90-Dataflow-analysis"><span class="nav-number">3.2.</span> <span class="nav-text">数据流分析 Dataflow analysis</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%9A%84%E5%B1%80%E9%99%90%E6%80%A7"><span class="nav-number">3.3.</span> <span class="nav-text">静态分析的局限性</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -457,6 +497,25 @@ window.addEventListener('pjax:success', () => {
 
   
 
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '38c8134468c7031a4503',
+      clientSecret: '01e1d2a948cb59164f4e98589a1c086cdb3d26ce',
+      repo        : 'b34nk0.github.io',
+      owner       : 'B34nK0',
+      admin       : ['B34nK0'],
+      id          : '10641a45e6222d9fc920001b4f27a7bd',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
 
     </div>
 </body>
