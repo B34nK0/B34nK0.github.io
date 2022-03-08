@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/bean.svg">
+  <link rel="mask-icon" href="/images/bean.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="@TOC 概要本文延续专栏的编程基础一进行学习,本文主要内容讲解Solidity的语句以及修饰符等内容 语句条件语句if&#x2F;else 条件语句和其他语言一样，但需要注意的是if(1) &amp;#123;...&amp;#125;在Solidity是无效的，但也可以通过强制类型转换将1转成true，尽管与其他语言一样&amp;#123;&amp;#125;语句块只有一个语句时可以省略&amp;#123;&amp;#125;，但便于开发者查看，建议">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Solidity编程基础（二）">
+<meta property="og:url" content="http://example.com/2022/03/08/Solidity%E7%BC%96%E7%A8%8B%E5%9F%BA%E7%A1%80%EF%BC%88%E4%BA%8C%EF%BC%89/index.html">
+<meta property="og:site_name" content="B34nK0">
+<meta property="og:description" content="@TOC 概要本文延续专栏的编程基础一进行学习,本文主要内容讲解Solidity的语句以及修饰符等内容 语句条件语句if&#x2F;else 条件语句和其他语言一样，但需要注意的是if(1) &amp;#123;...&amp;#125;在Solidity是无效的，但也可以通过强制类型转换将1转成true，尽管与其他语言一样&amp;#123;&amp;#125;语句块只有一个语句时可以省略&amp;#123;&amp;#125;，但便于开发者查看，建议">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-03-08T06:32:09.000Z">
+<meta property="article:modified_time" content="2022-03-08T06:32:58.695Z">
+<meta property="article:author" content="B34nK0">
+<meta property="article:tag" content="Solidity">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2022/03/08/Solidity%E7%BC%96%E7%A8%8B%E5%9F%BA%E7%A1%80%EF%BC%88%E4%BA%8C%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Solidity编程基础（二） | B34nK0</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">B34nK0</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">技术永不过期</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/B34nK0" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/08/Solidity%E7%BC%96%E7%A8%8B%E5%9F%BA%E7%A1%80%EF%BC%88%E4%BA%8C%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/bean.svg">
+      <meta itemprop="name" content="B34nK0">
+      <meta itemprop="description" content="保持一份热爱，成为一个匠人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="B34nK0">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Solidity编程基础（二）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-03-08 14:32:09 / 修改时间：14:32:58" itemprop="dateCreated datePublished" datetime="2022-03-08T14:32:09+08:00">2022-03-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE/" itemprop="url" rel="index"><span itemprop="name">区块链</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>@<a href="Solidity%E7%BC%96%E7%A8%8B%E5%9F%BA%E7%A1%80%E4%BA%8C">TOC</a></p>
+<h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>本文延续专栏的编程<a target="_blank" rel="noopener" href="https://blog.csdn.net/BBinChina/article/details/122395501">基础一</a>进行学习,本文主要内容讲解Solidity的语句以及修饰符等内容</p>
+<h1 id="语句"><a href="#语句" class="headerlink" title="语句"></a>语句</h1><h2 id="条件语句"><a href="#条件语句" class="headerlink" title="条件语句"></a>条件语句</h2><p><code>if/else</code> 条件语句和其他语言一样，但需要注意的是<code>if(1) &#123;...&#125;</code>在Solidity是无效的，但也可以通过强制类型转换将1转成true，尽管与其他语言一样<code>&#123;&#125;</code>语句块只有一个语句时可以省略<code>&#123;&#125;</code>，但便于开发者查看，建议采用{不省略}的编程规范。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (totalPoints &gt; bet.line) &#123;</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (totalPoints &lt; bet.line) &#123;</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="循环语句"><a href="#循环语句" class="headerlink" title="循环语句"></a>循环语句</h2><ul>
+<li>while语句<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span>(<span class="literal">true</span>)  &#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>for语句<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(uint i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)  &#123;</span><br><span class="line">	<span class="keyword">if</span> (i == <span class="number">2</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">///</span></span><br><span class="line">	&#125; </span><br><span class="line">	<span class="keyword">if</span> (i == <span class="number">1</span> ) &#123;</span><br><span class="line">		<span class="keyword">continue</span>;</span><br><span class="line">	&#125; </span><br><span class="line">	<span class="comment">///</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<ol>
+<li>break: 用来跳出现有循环</li>
+<li>return: 用来从函数方法中返回</li>
+<li>continue: 用来退出当前的循环，跳到下一次的循环开始</li>
+</ol>
+<p>除了以上的<code> whille、for、if、else、break、continue、return</code>，还有 <code>? :</code>三元操作符<br><code>a &gt; b ? a : b 表示如果 a &gt; b 则返回a，否则返回b</code></p>
+<h1 id="修饰符"><a href="#修饰符" class="headerlink" title="修饰符"></a>修饰符</h1><p>在上一章节 我们讲到函数类型时，给出其声明模板</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> (<span class="params">&lt;parameter types&gt;</span>) </span>&#123;internal(默认)|external&#125; [pure|constant|view|payable] [returns (<span class="xml"><span class="tag">&lt;<span class="name">return</span> <span class="attr">types</span>&gt;</span>)]</span></span><br></pre></td></tr></table></figure>
+
+<p>模板中的<code>external、internal、pure、constant、view、payable</code>即是我们常说的函数修饰符。而其中的 <code>external、internal、public、private</code>是针对函数的可见性而言，<code>pure、constant、view、payable</code>是针对对合约状态变量的修改能力做出规定。</p>
+<p>由于 Solidity 有两种函数调用（<strong>内部调用不会产生实际的 EVM 调用或称为“消息调用”，而外部调用则会产生一个 EVM 调用</strong>）， <strong>函数和状态变量</strong>有四种可见性类型。 函数可以指定为 <code>external</code> ，<code>public</code> ，<code>internal</code> 或者 <code>private</code>，默认情况下函数类型为 <code>public</code>,<code>internal</code>。 对于<strong>状态变量</strong>，不能设置为 <code>external </code>，默认是<code> internal</code> 。</p>
+<h2 id="修饰符说明"><a href="#修饰符说明" class="headerlink" title="修饰符说明"></a>修饰符说明</h2><ul>
+<li>internal修饰符<br>1、声明的函数和状态变量只能通过内部访问。如在当前合约中调用，或继承的合约里调用。<br>2、需要注意的是不能使用<code>this.</code>前缀，<code>this.</code>表示通过外部方式访问（通过EVM调用栈）。<br>3、不指定任何修饰符时，函数默认为Internal修饰符，其类似于Java或C++里的protected。</li>
+<li>external修饰符<br>1、声明函数为外部函数，即可提供其他合约或通过交易来发起调用，通过<code>this.</code>如this.f()发起调用。</li>
+<li>public修饰符<br>1、声明函数为公开函数，可通过外部或者外部消息来调用。<br>2、对于public类型状态变量，编译器自动为所有 public 状态变量创建 getter 函数,getter函数在下文讲解。</li>
+<li>private修饰符<br>1、声明函数为私有函数，仅在当前合约中可访问，在继承的合约内不可访问。<br>2、同理声明状态变量为私有状态，仅在当前合约内访问。</li>
+<li>constant修饰符<br>1、声明函数<strong>不能更改</strong>区块链的状态变量，只可读取状态变量。包括<strong>不能</strong>改变变量、调用事件、创建另一个合约以及调用其他可能改变状态的函数。</li>
+<li>view修饰符<br>1、等同于constant</li>
+<li>pure修饰符<br>1、声明函数<strong>不能读写</strong>状态变量</li>
+<li>payable修饰符<br>1、声明函数可以从调用者接收ether，如果发送方没有提供ether，调用则可能会失败。<br>2、而声明为payable也表示该函数只能收取ether。</li>
+</ul>
+<h2 id="修饰符区别"><a href="#修饰符区别" class="headerlink" title="修饰符区别"></a>修饰符区别</h2><ul>
+<li>external 和 public 修饰符<br>1、eternal和public都是提供其他合约调用或者交易的方式调用，其主要区别在于合约调用函数的方式和输入参数的传输方式。<br>2、在合约中，从一个函数直接调用一个<code>public</code>函数时，同<code>private</code>和<code>internal</code>函数一样，代码的执行会通过<code>jump</code>汇编指令。但<code>external</code>必须通过<code>call</code>汇编指令。<br>3、internal调用会从只读的calldata里<strong>复制</strong>输入参数到内存或者栈上。<br>4、external只读取calldata数据，并不复制。<br>5、通过jump指令执行时，数组参数是通过指向内存的指针来传递的。<br>6、public函数不知道调用者是external还是internal，所以public函数会跟internal一样复制参数到内存上。<br>7、为了减少开销，尽量确定函数可使用external修饰符</li>
+</ul>
+<p>示例总结：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.12</span>;</span><br><span class="line">contract Test &#123;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	可以被internal、external调用，但interal调用时不会复制参数a到内存里</span></span><br><span class="line"><span class="comment">	因为复制操作，所以会产生gas额外的燃料费</span></span><br><span class="line"><span class="comment">	代码的执行通过jump指令</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">test</span>(<span class="params">uint[<span class="number">20</span>]a</span>) <span class="title">public</span> <span class="title">returns</span>(<span class="params">uint</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> a[<span class="number">10</span>]*<span class="number">2</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	不复制参数到内存，直接从calldata读取</span></span><br><span class="line"><span class="comment">	代码的执行通过call指令</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">test1</span>(<span class="params">uint[<span class="number">20</span>]a</span>) <span class="title">external</span> <span class="title">returns</span>(<span class="params">uint</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> a[<span class="number">10</span>]*<span class="number">2</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	同理复制参数到内存</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">test2</span>(<span class="params">uint[<span class="number">20</span>]a</span>) <span class="title">internal</span> <span class="title">returns</span>(<span class="params">uint</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> a[<span class="number">10</span>]*<span class="number">2</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>internal 和 external修饰符<br>上述已经讲述了internal和external调用及参数传输方式<br>以下通过示例讲解internal之间的调用关系</li>
+</ul>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.5</span>;</span><br><span class="line"></span><br><span class="line">contract FunctionTest &#123;</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">internalFunc</span>(<span class="params"></span>) <span class="title">internal</span></span>&#123;&#125;</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">externalFunc</span>(<span class="params"></span>) <span class="title">external</span></span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">callFunc</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">		<span class="comment">//内部调用,不能通过this访问</span></span><br><span class="line">		internalFunc();</span><br><span class="line">		<span class="comment">//只能通过this访问外部函数</span></span><br><span class="line">		<span class="built_in">this</span>.externalFunc();<span class="comment">//执行call指令</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract FunctionTest1&#123;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">externalCall</span>(<span class="params">FunctionTest ft</span>) </span>&#123;</span><br><span class="line">		<span class="comment">//external函数供其他合约调用、不能调用ft的内部函数internalFunc();</span></span><br><span class="line">		ft.externalFunc();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="自定义修饰符"><a href="#自定义修饰符" class="headerlink" title="自定义修饰符"></a>自定义修饰符</h2><p>修改器是一种合约属性，可被继承，同时还可被派生的**合约重写(override)**。下面我们来看一段示例代码：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract owned &#123;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">owned</span>(<span class="params"></span>) </span>&#123; owner = msg.sender; &#125;</span><br><span class="line">    address owner;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//自定义修饰符onlyOwner，在当前合约没有使用到，可被继承</span></span><br><span class="line">    <span class="comment">//修饰符修饰的函数在执行函数时会先执行修饰符内容</span></span><br><span class="line">    <span class="comment">//_;表示占位符，函数体会在这个占位符之后执行</span></span><br><span class="line">    <span class="comment">//该修饰符进行调用者判断，如果不是合约持久着即抛出异常，否则正常执行被修饰函数内容</span></span><br><span class="line">    modifier onlyOwner &#123;</span><br><span class="line">        <span class="keyword">if</span> (msg.sender != owner)</span><br><span class="line">            <span class="keyword">throw</span>;</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//继承owned合约，同时继承其`onlyOwner`修饰符</span></span><br><span class="line">contract mortal is owned &#123;</span><br><span class="line">	<span class="comment">//onlyOwner修饰符用于判断调用者为合约持有者时执行selfdestruct销毁</span></span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">close</span>(<span class="params"></span>) <span class="title">onlyOwner</span> </span>&#123;</span><br><span class="line">        selfdestruct(owner);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">contract priced &#123;</span><br><span class="line">    <span class="comment">//修饰符可以接收参数</span></span><br><span class="line">    modifier <span class="function"><span class="title">costs</span>(<span class="params">uint price</span>)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (msg.value &gt;= price) &#123;</span><br><span class="line">            _;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//继承priced合约、owned合约</span></span><br><span class="line">contract Register is priced, owned &#123;</span><br><span class="line">    mapping (<span class="function"><span class="params">address</span> =&gt;</span> bool) registeredAddresses;</span><br><span class="line">    uint price;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//构造函数</span></span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">Register</span>(<span class="params">uint initialPrice</span>) </span>&#123; price = initialPrice; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// costs修饰符接收参数price</span></span><br><span class="line">    <span class="comment">// payable修饰符表示接收ether，该修饰符时必须的，否则函数自动拒绝调用的ether</span></span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">register</span>(<span class="params"></span>) <span class="title">payable</span> <span class="title">costs</span>(<span class="params">price</span>) </span>&#123;</span><br><span class="line">        registeredAddresses[msg.sender] = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//合约持有者才能修改价格</span></span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">changePrice</span>(<span class="params">uint _price</span>) <span class="title">onlyOwner</span> </span>&#123;</span><br><span class="line">        price = _price;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="自定义修饰符扩展"><a href="#自定义修饰符扩展" class="headerlink" title="自定义修饰符扩展"></a>自定义修饰符扩展</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">contract Mutex &#123;</span><br><span class="line">	bool locked;</span><br><span class="line">	modifier <span class="function"><span class="title">noReentrancy</span>(<span class="params"></span>)</span> &#123;</span><br><span class="line">		<span class="built_in">require</span> (!locked, <span class="string">&quot;Reentrant call.&quot;</span>);</span><br><span class="line">		<span class="comment">//锁的粒度在于执行函数体</span></span><br><span class="line">		locked=<span class="literal">true</span>;</span><br><span class="line">		_;</span><br><span class="line">		locked=<span class="literal">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//采用互斥锁概念防止这个f函数体被重入，比如msg.sender.call里不能在调用f()。</span></span><br><span class="line">	<span class="function"><span class="keyword">function</span> <span class="title">f</span>(<span class="params"></span>) <span class="title">public</span> <span class="title">noReentrancy</span> <span class="title">return</span>(<span class="params">uint</span>) </span>&#123;</span><br><span class="line">		(bool success,) = msg.sender.call(<span class="string">&quot;&quot;</span>);</span><br><span class="line">		<span class="built_in">require</span>(success);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="public状态变量的getter函数"><a href="#public状态变量的getter函数" class="headerlink" title="public状态变量的getter函数"></a>public状态变量的getter函数</h2><p>对于下面给出的合约，编译器会生成一个名为 data 的函数， 该函数不会接收任何参数并返回一个 uint ，即状态变量 data 的值。可以在声明时完成状态变量的初始化。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract C &#123;</span><br><span class="line">    uint public data = <span class="number">42</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract Caller &#123;</span><br><span class="line">    C c = <span class="keyword">new</span> C();</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">f</span>(<span class="params"></span>) <span class="title">public</span> </span>&#123;</span><br><span class="line">        uint local = c.data();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>getter 函数具有外部可见性。如果在内部访问 getter（即没有 this. ），它被认为一个状态变量。 如果它是外部访问的（即用 this. ），它被认为为一个函数。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract C &#123;</span><br><span class="line">    uint public data;</span><br><span class="line">    <span class="function"><span class="keyword">function</span> <span class="title">x</span>(<span class="params"></span>) <span class="title">public</span> </span>&#123;</span><br><span class="line">        data = <span class="number">3</span>; <span class="comment">// 内部访问</span></span><br><span class="line">        uint val = <span class="built_in">this</span>.data(); <span class="comment">// 外部访问</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下一个例子稍微复杂一些：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^<span class="number">0.4</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract Complex &#123;</span><br><span class="line">    struct Data &#123;</span><br><span class="line">        uint a;</span><br><span class="line">        bytes3 b;</span><br><span class="line">        mapping (<span class="function"><span class="params">uint</span> =&gt;</span> uint) map;</span><br><span class="line">    &#125;</span><br><span class="line">    mapping (<span class="function"><span class="params">uint</span> =&gt;</span> mapping(<span class="function"><span class="params">bool</span> =&gt;</span> Data[])) public data;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这将会生成以下形式的函数</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">data</span>(<span class="params">uint arg1, bool arg2, uint arg3</span>) <span class="title">public</span> <span class="title">returns</span> (<span class="params">uint a, bytes3 b</span>) </span>&#123;</span><br><span class="line">    a = data[arg1][arg2][arg3].a;</span><br><span class="line">    b = data[arg1][arg2][arg3].b;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>请注意，因为没有好的方法来提供映射的键，所以<strong>结构中的映射map被省略</strong>。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Solidity/" rel="tag"># Solidity</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/03/08/python%E5%BA%93%E6%89%93%E5%8C%85%E4%B8%8E%E5%8F%91%E5%B8%83-setup/" rel="prev" title="python库打包与发布 setup">
+      <i class="fa fa-chevron-left"></i> python库打包与发布 setup
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/03/08/Solidity%E7%BC%96%E7%A8%8B%E5%9F%BA%E7%A1%80%EF%BC%88%E4%B8%89%EF%BC%89/" rel="next" title="Solidity编程基础（三）">
+      Solidity编程基础（三） <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AF%AD%E5%8F%A5"><span class="nav-number">2.</span> <span class="nav-text">语句</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E8%AF%AD%E5%8F%A5"><span class="nav-number">2.1.</span> <span class="nav-text">条件语句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BE%AA%E7%8E%AF%E8%AF%AD%E5%8F%A5"><span class="nav-number">2.2.</span> <span class="nav-text">循环语句</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BF%AE%E9%A5%B0%E7%AC%A6"><span class="nav-number">3.</span> <span class="nav-text">修饰符</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E9%A5%B0%E7%AC%A6%E8%AF%B4%E6%98%8E"><span class="nav-number">3.1.</span> <span class="nav-text">修饰符说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E9%A5%B0%E7%AC%A6%E5%8C%BA%E5%88%AB"><span class="nav-number">3.2.</span> <span class="nav-text">修饰符区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BF%AE%E9%A5%B0%E7%AC%A6"><span class="nav-number">3.3.</span> <span class="nav-text">自定义修饰符</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BF%AE%E9%A5%B0%E7%AC%A6%E6%89%A9%E5%B1%95"><span class="nav-number">3.3.1.</span> <span class="nav-text">自定义修饰符扩展</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#public%E7%8A%B6%E6%80%81%E5%8F%98%E9%87%8F%E7%9A%84getter%E5%87%BD%E6%95%B0"><span class="nav-number">3.4.</span> <span class="nav-text">public状态变量的getter函数</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="B34nK0"
+      src="/images/bean.svg">
+  <p class="site-author-name" itemprop="name">B34nK0</p>
+  <div class="site-description" itemprop="description">保持一份热爱，成为一个匠人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">B34nK0</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '38c8134468c7031a4503',
+      clientSecret: '01e1d2a948cb59164f4e98589a1c086cdb3d26ce',
+      repo        : 'b34nk0.github.io',
+      owner       : 'B34nK0',
+      admin       : ['B34nK0'],
+      id          : '1ac4029fdac5446fbf85c5c9f1d24ab5',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>
