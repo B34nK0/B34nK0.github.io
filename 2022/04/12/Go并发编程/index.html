@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/bean.svg">
+  <link rel="mask-icon" href="/images/bean.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="概要从线程模型到协程模型，讲解Go的并发编程 内核线程我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用线程池的方式来进行优化。 用户级线程（协程）尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go并发编程">
+<meta property="og:url" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/index.html">
+<meta property="og:site_name" content="B34nK0">
+<meta property="og:description" content="概要从线程模型到协程模型，讲解Go的并发编程 内核线程我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用线程池的方式来进行优化。 用户级线程（协程）尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/GPM%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B.jpg">
+<meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/G%E4%BB%BB%E5%8A%A1%E7%8A%B6%E6%80%81.jpg">
+<meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/G%E4%BB%BB%E5%8A%A1%E7%9A%84%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2.jpg">
+<meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/P%E7%8A%B6%E6%80%81.jpg">
+<meta property="article:published_time" content="2022-04-12T02:01:26.000Z">
+<meta property="article:modified_time" content="2022-04-12T06:50:47.534Z">
+<meta property="article:author" content="B34nK0">
+<meta property="article:tag" content="Golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/GPM%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B.jpg">
+
+<link rel="canonical" href="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Go并发编程 | B34nK0</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">B34nK0</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">技术永不过期</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/B34nK0" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/bean.svg">
+      <meta itemprop="name" content="B34nK0">
+      <meta itemprop="description" content="保持一份热爱，成为一个匠人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="B34nK0">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go并发编程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-04-12 10:01:26 / 修改时间：14:50:47" itemprop="dateCreated datePublished" datetime="2022-04-12T10:01:26+08:00">2022-04-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index"><span itemprop="name">编程语言</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>从线程模型到协程模型，讲解Go的并发编程</p>
+<h1 id="内核线程"><a href="#内核线程" class="headerlink" title="内核线程"></a>内核线程</h1><p>我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。<br>又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用<code>线程池</code>的方式来进行优化。</p>
+<h1 id="用户级线程（协程）"><a href="#用户级线程（协程）" class="headerlink" title="用户级线程（协程）"></a>用户级线程（协程）</h1><p>尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在用户级维护<code>调度单位</code>(线程)。协程库基本是语言层面提供的，一个进程内的多个<code>线程</code>（协程）对应的是一个内核级线程，而上下文的切换是在用户态进行的。相较于内核级线程的内存占用（MB）来说其内存占用（KB）更小，且不需要cpu在用户态和内核态之间切换。</p>
+<p>此模型下的多线程并不能真正的并发运行。例如，如果某个线程在 I/O 操作过程中被阻塞，那么其所属进程内的所有线程都被阻塞，整个进程将被挂起。</p>
+<h1 id="两级线程模型"><a href="#两级线程模型" class="headerlink" title="两级线程模型"></a>两级线程模型</h1><p>集合内核级线程以及用户级线程模型，让一个进程内的<code>线程</code>（用户级线程）可以绑定到不同的内核级线程，如果用户级线程某个操作阻塞后，绑定的内核线程需要让出CPU时，用户级其他线程绑定的内核线程可以得到cpu获得执行，即整个用户级可以实现并发。</p>
+<h1 id="Go的并发机制"><a href="#Go的并发机制" class="headerlink" title="Go的并发机制"></a>Go的并发机制</h1><p>传统的协程即用户级线程模型，而Go的协程模型区别于传统的协程，其成为Goroutine，其实现的是两级线程模型，依赖的是Go实现的调度器。</p>
+<p>Go 的调度器使用 G、M、P 三个结构体来实现 Goroutine 的调度，也称之为GMP 模型。</p>
+<h2 id="G"><a href="#G" class="headerlink" title="G"></a>G</h2><p>表示 Goroutine。<br>每个 Goroutine 对应一个 G 结构体，G 存储 Goroutine 的运行堆栈、状态以及任务函数，可重用。<br>当 Goroutine 被调离 CPU 时，调度器代码负责把 CPU 寄存器的值保存在 G 对象的成员变量之中。<br>当 Goroutine 被调度起来运行时，调度器代码又负责把 G 对象的成员变量所保存的寄存器的值恢复到 CPU 的寄存器。</p>
+<h2 id="P"><a href="#P" class="headerlink" title="P"></a>P</h2><p>表示逻辑处理器。<br>对 G 来说，P 相当于 CPU 核，G 只有绑定到 P(在 P 的 local runq 中)才能被调度。<br>对 M 来说，P 提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等。<br>它维护一个局部 Goroutine 可运行 G 队列，工作线程优先使用自己的局部运行队列，只有必要时才会去访问全局运行队列，这可以大大减少锁冲突，提高工作线程的并发性，并且可以良好的运用程序的局部性原理</p>
+<h2 id="M"><a href="#M" class="headerlink" title="M"></a>M</h2><p>OS 底层线程的抽象，它本身就与一个内核线程进行绑定，每个工作线程都有唯一的一个 M 结构体的实例对象与之对应，它代表着真正执行计算的资源，由操作系统的调度器调度和管理。<br>M 结构体对象除了记录着工作线程的诸如栈的起止位置、当前正在执行的 Goroutine 以及是否空闲等等状态信息之外，还通过指针维持着与 P 结构体的实例对象之间的绑定关系</p>
+<p><img src="GPM%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B.jpg"></p>
+<p>可以总结为G即是我们的用户任务，我们需要依赖于P和M来执行我们的任务。</p>
+<h3 id="G-1"><a href="#G-1" class="headerlink" title="G"></a>G</h3><p>g 结构体部分源码（src/runtime/runtime2.go）：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> g <span class="keyword">struct</span> &#123;</span><br><span class="line">    stack    stack  <span class="comment">// Goroutine的栈内存范围[stack.lo, stack.hi)</span></span><br><span class="line">    stackguard0   <span class="keyword">uintptr</span> <span class="comment">// 用于调度器抢占式调度</span></span><br><span class="line">    m     *m  <span class="comment">// Goroutine占用的线程</span></span><br><span class="line">    sched    gobuf  <span class="comment">// Goroutine的调度相关数据</span></span><br><span class="line">    atomicstatus  <span class="keyword">uint32</span> <span class="comment">// Goroutine的状态</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> gobuf <span class="keyword">struct</span> &#123;</span><br><span class="line">    sp  <span class="keyword">uintptr</span>  <span class="comment">// 栈指针</span></span><br><span class="line">    pc  <span class="keyword">uintptr</span>  <span class="comment">// 程序计数器</span></span><br><span class="line">    g  guintptr  <span class="comment">// gobuf对应的Goroutine</span></span><br><span class="line">    ret  sys.Uintewg <span class="comment">// 系统调用的返回值</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>g结构中的atomicstatus表示当前g的执行状态，状态描述表：<br><img src="G%E4%BB%BB%E5%8A%A1%E7%8A%B6%E6%80%81.jpg"></p>
+<p>其可归纳为三种：<code>等待中，可运行，运行中</code>。</p>
+<ul>
+<li><p>等待中：Goroutine 正在等待某些条件满足，例如：系统调用结束等，包括_Gwaiting、_Gsyscall 和_Gpreempted 几个状态</p>
+</li>
+<li><p>可运行：Goroutine 已经准备就绪，可以在线程运行，如果当前程序中有非常多的 Goroutine，每个 Goroutine 就可能会等待更多的时间，即_Grunnable</p>
+</li>
+<li><p>运行中：Goroutine 正在某个线程上运行，即_Grunning</p>
+</li>
+</ul>
+<p>状态转换图：<br><img src="G%E4%BB%BB%E5%8A%A1%E7%9A%84%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2.jpg"></p>
+<h3 id="M-1"><a href="#M-1" class="headerlink" title="M"></a>M</h3><p>前文讲到M实际上是系统线程，在大多数情况下，我们都会使用 Go 的默认设置，也就是线程数等于 CPU 数。<br>默认的设置不会频繁触发操作系统的线程调度和上下文切换，所有的调度都会发生在用户态，由 Go 语言调度器触发，能够减少很多额外开销。</p>
+<p>m 结构部分源码：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> m <span class="keyword">struct</span> &#123;</span><br><span class="line">    g0   *g   <span class="comment">// 一个特殊的goroutine，执行一些运行时任务</span></span><br><span class="line">    gsignal  *g   <span class="comment">// 处理signal的G</span></span><br><span class="line">    curg  *g   <span class="comment">// 当前M正在运行的G的指针</span></span><br><span class="line">    p   puintptr <span class="comment">// 正在与当前M关联的P</span></span><br><span class="line">    nextp  puintptr <span class="comment">// 与当前M潜在关联的P</span></span><br><span class="line">    oldp  puintptr <span class="comment">// 执行系统调用之前使用线程的P</span></span><br><span class="line">    spinning <span class="keyword">bool</span>  <span class="comment">// 当前M是否正在寻找可运行的G</span></span><br><span class="line">    lockedg  *g   <span class="comment">// 与当前M锁定的G</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>g0</code>区别于正在当前m线程上执行的g任务<code>curg</code>,其由 Go 运行时系统在启动之处创建，它会深度参与运行时的调度过程，包括 Goroutine 的创建、大内存分配和 CGO 函数的执行。<br><code>puintptr</code>即当前与m绑定的p（g任务组）</p>
+<h3 id="P-1"><a href="#P-1" class="headerlink" title="P"></a>P</h3><p>通过处理器 P 的调度，每一个M都能够执行多个 Goroutine，它能在 Goroutine 进行一些 I/O 操作时及时让出计算资源，提高线程的利用率。</p>
+<p>p 结构体部分源码：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> p <span class="keyword">struct</span> &#123;</span><br><span class="line"> <span class="comment">// p 的状态</span></span><br><span class="line"> status   <span class="keyword">uint32</span></span><br><span class="line"> <span class="comment">// 对应关联的 M</span></span><br><span class="line"> m        muintptr</span><br><span class="line"> <span class="comment">// 可运行的Goroutine队列，可无锁访问</span></span><br><span class="line"> runqhead <span class="keyword">uint32</span></span><br><span class="line"> runqtail <span class="keyword">uint32</span></span><br><span class="line"> runq     [<span class="number">256</span>]guintptr</span><br><span class="line"> <span class="comment">// 缓存可立即执行的G</span></span><br><span class="line"> runnext   guintptr</span><br><span class="line"> <span class="comment">// 可用的G列表，G状态等于Gdead</span></span><br><span class="line"> gFree <span class="keyword">struct</span> &#123;</span><br><span class="line">  gList</span><br><span class="line">  n <span class="keyword">int32</span></span><br><span class="line"> &#125;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>p结构的status状态描述：<br><img src="P%E7%8A%B6%E6%80%81.jpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Golang/" rel="tag"># Golang</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/01/AIO(Proactor)%E4%B8%8ENIO(Reactor)/" rel="prev" title="AIO(Proactor)与NIO(Reactor)">
+      <i class="fa fa-chevron-left"></i> AIO(Proactor)与NIO(Reactor)
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E7%BA%BF%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">内核线程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%8D%8F%E7%A8%8B%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">用户级线程（协程）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%A4%E7%BA%A7%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">两级线程模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go%E7%9A%84%E5%B9%B6%E5%8F%91%E6%9C%BA%E5%88%B6"><span class="nav-number">5.</span> <span class="nav-text">Go的并发机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#G"><span class="nav-number">5.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#P"><span class="nav-number">5.2.</span> <span class="nav-text">P</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#M"><span class="nav-number">5.3.</span> <span class="nav-text">M</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#G-1"><span class="nav-number">5.3.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#M-1"><span class="nav-number">5.3.2.</span> <span class="nav-text">M</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#P-1"><span class="nav-number">5.3.3.</span> <span class="nav-text">P</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="B34nK0"
+      src="/images/bean.svg">
+  <p class="site-author-name" itemprop="name">B34nK0</p>
+  <div class="site-description" itemprop="description">保持一份热爱，成为一个匠人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">B34nK0</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '38c8134468c7031a4503',
+      clientSecret: '01e1d2a948cb59164f4e98589a1c086cdb3d26ce',
+      repo        : 'b34nk0.github.io',
+      owner       : 'B34nK0',
+      admin       : ['B34nK0'],
+      id          : '46aa8fb4de8a84111a5de0f02b98c595',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>

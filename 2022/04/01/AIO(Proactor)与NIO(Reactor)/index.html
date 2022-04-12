@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/bean.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/bean.svg">
+  <link rel="mask-icon" href="/images/bean.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="概要在讲到IO时，我们会讲到阻塞&#x2F;非阻塞，即BIO&#x2F;NIO。那么AIO又是什么呢？ AIO即是Asynchronous IO，异步IO。这里的异步是关于用户读取数据来说是同步还是异步，回到BIO及NIO的场景：BIO是创建一个IO句柄后，阻塞等待数据返回NIO在创建完一个IO句柄后，不阻塞等待，而是去做其他事情，当有数据时，用户再进行数据读取，这个时候的读取动作是同步的，即如果缓冲区的数据没读取完">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AIO(Proactor)与NIO(Reactor)">
+<meta property="og:url" content="http://example.com/2022/04/01/AIO(Proactor)%E4%B8%8ENIO(Reactor)/index.html">
+<meta property="og:site_name" content="B34nK0">
+<meta property="og:description" content="概要在讲到IO时，我们会讲到阻塞&#x2F;非阻塞，即BIO&#x2F;NIO。那么AIO又是什么呢？ AIO即是Asynchronous IO，异步IO。这里的异步是关于用户读取数据来说是同步还是异步，回到BIO及NIO的场景：BIO是创建一个IO句柄后，阻塞等待数据返回NIO在创建完一个IO句柄后，不阻塞等待，而是去做其他事情，当有数据时，用户再进行数据读取，这个时候的读取动作是同步的，即如果缓冲区的数据没读取完">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-04-01T02:13:11.000Z">
+<meta property="article:modified_time" content="2022-04-02T08:28:32.069Z">
+<meta property="article:author" content="B34nK0">
+<meta property="article:tag" content="IO模型">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2022/04/01/AIO(Proactor)%E4%B8%8ENIO(Reactor)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>AIO(Proactor)与NIO(Reactor) | B34nK0</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">B34nK0</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">技术永不过期</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/B34nK0" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/01/AIO(Proactor)%E4%B8%8ENIO(Reactor)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/bean.svg">
+      <meta itemprop="name" content="B34nK0">
+      <meta itemprop="description" content="保持一份热爱，成为一个匠人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="B34nK0">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AIO(Proactor)与NIO(Reactor)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-01 10:13:11" itemprop="dateCreated datePublished" datetime="2022-04-01T10:13:11+08:00">2022-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-02 16:28:32" itemprop="dateModified" datetime="2022-04-02T16:28:32+08:00">2022-04-02</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index"><span itemprop="name">网络</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>在讲到IO时，我们会讲到阻塞/非阻塞，即BIO/NIO。那么AIO又是什么呢？</p>
+<p>AIO即是Asynchronous IO，异步IO。这里的异步是关于用户读取数据来说是同步还是异步，回到BIO及NIO的场景：<br>BIO是创建一个IO句柄后，阻塞等待数据返回<br>NIO在创建完一个IO句柄后，不阻塞等待，而是去做其他事情，当有数据时，用户再进行数据读取，这个时候的读取动作是同步的，即如果缓冲区的数据没读取完，那么会一直读取。</p>
+<p>比如select以及poll模型，这两种模型都是非阻塞IO，即当socket套接字创建完成之后，用户可以去做其他事情，当套接字有事件发生时，用户主动将内核数据同步拷贝到用户态。</p>
+<p>AIO要优化的的即是，当内核数据有数据时，将内核态数据拷贝到用户态，并不需要用户做主动拷贝。</p>
+<h2 id="总结："><a href="#总结：" class="headerlink" title="总结："></a>总结：</h2><p>AIO将IO就绪事件监听和IO数据读取全部交由操作系统完成，也就不需要多路复用器去监听IO就绪事件、也不需要分配线程读取。<br>用户完全不需要关注IO过程，只需要关注拿到数据后的处理。</p>
+<h1 id="AIO的底层实现"><a href="#AIO的底层实现" class="headerlink" title="AIO的底层实现"></a>AIO的底层实现</h1><p>Windows上是使用完成接口<code>IOCP</code>实现。</p>
+<p>Linux上使用aio调用<code>UnixAsynchronousServerSocketChannelImpl, UnixAsynchronousSocketChannelImpl, SolarisAsynchronousChannelProvider</code>。</p>
+<ul>
+<li>Linux内核的AIO实现有很多问题（不在本文讨论范畴），性能在某些场景下还不如NIO，连Linux上的Java都是用epoll来模拟AIO，所以Linux上使用Java的AIO API，只是能体验到异步IO的编程风格，但并不会比NIO高效。</li>
+</ul>
+<p>由于Linux上实现的缺陷，Linux平台上的Java服务端编程，目前主流依然采用NIO模型。</p>
+<h1 id="Windows-AIO-与-Linux-NIO"><a href="#Windows-AIO-与-Linux-NIO" class="headerlink" title="Windows AIO 与 Linux NIO"></a>Windows AIO 与 Linux NIO</h1><p>关于AIO与NIO的同步异步方式，由此引生出两种通讯模型：Proactor、Reactor.</p>
+<p>Proactor与Reactor都是基于IO多路复用的事件驱动模式，区别在于数据的同步与异步读取。<br>在Proactor模式下，当回调handler时，表示IO已经完成。<br>在Reactor模式下，当回调handler时，表示IO可以进行某个操作。</p>
+<p>IO多路复用依赖一个事件多路分离器(Event Demultiplexer)，开发人员预先注册需要处理的事件以及事件处理器（或回调函数），事件分离器负责将来自事件源的IO事件分离出来，再分发到对应的事件处理器。</p>
+<h2 id="Reactor"><a href="#Reactor" class="headerlink" title="Reactor"></a>Reactor</h2><p>采用主线程（IO处理单元）只监听IO描述符是否有事件发生，有的话就通知工作线程（逻辑单元），读写数据、接收新的链接、以及处理用户请求均在工作线程处理。</p>
+<h3 id="单Reactor（主线程）、单线程（工作线程）"><a href="#单Reactor（主线程）、单线程（工作线程）" class="headerlink" title="单Reactor（主线程）、单线程（工作线程）"></a>单Reactor（主线程）、单线程（工作线程）</h3><p>acceptor分发事件到handler以及handler处理数据都是在同一线程</p>
+<h3 id="单Reactor（主线程）、多线程（工作线程）"><a href="#单Reactor（主线程）、多线程（工作线程）" class="headerlink" title="单Reactor（主线程）、多线程（工作线程）"></a>单Reactor（主线程）、多线程（工作线程）</h3><p>1、如果是建立链接事件，则由acceptor通过accept处理链接请求，然后创建一个handler来处理这个链接接下来的其他事件<br>2、如果是其他事件，则分发给对应链接的handler<br>3、handler只负责响应事件，不做具体的任何业务，通过read读取数据后，会分发给后面的work工作线程池进行业务处理<br>4、业务出来完成之后分发会handler，handler将再数据发往对应的链接</p>
+<h3 id="主从Reactor，多线程（工作线程）模式"><a href="#主从Reactor，多线程（工作线程）模式" class="headerlink" title="主从Reactor，多线程（工作线程）模式"></a>主从Reactor，多线程（工作线程）模式</h3><p>1、主Reactor线程池中随机选择一个线程作为acceptor线程，用于绑定监听端口，接收客户端链接<br>2、acceptor接收客户端链接后创建新的socketchannel，同时从主Reactor线程中获取一个线程来进行客户端认证、IP黑白名单等控制层处理<br>3、验证通过的socketchannel在从Reactor线程池中创建一个handler来处理该链接<br>4、当链接有事件触发时，从Reactor会进行分发到对应的handler<br>5、handler响应事件时，通过read读取数据后，分发到work工作先吃进行业务处理<br>6、业务出来完成之后分发会handler，handler将再数据发往对应的链接</p>
+<h2 id="Proactor"><a href="#Proactor" class="headerlink" title="Proactor"></a>Proactor</h2><p>1、Proactor initiator负责创建 Proactor和Handler，并将Proactor和Handler都通过Asynchronous Operation Processer注册到内核<br>2、当Asynchronous Operation Processer完成IO操作后会通知Proctor<br>3、Proactor根据不同的事件分发到不同的Handler进行业务处理<br>4、Handler完成业务处理后，可以注册新的Handler到内核</p>
+<p>读操作：<br>1、应用程序初始化一个异步读取事件，然后注册事件处理器，区别于Reactor，Proactor是异步IO，事件处理器不关注读取就绪时间，只关注读取完成事件。<br>2、事件分离器等待读取完成事件<br>3、操作系统调用内核完成读取操作，将读取到的数据放到用户传递过来的缓冲区，之后回调事件分离器<br>4、事件分离器捕获到读取完事件后，回调给用户注册的事件处理器，事件处理器直接从缓冲区读取数据，而不需要再进行实际的IO操作</p>
+<p>相比于Reactor，Proactor是内核将数据读取完成之后放到用户提供的缓冲区，而Reactor需要用户多次进行读取操作</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/IO%E6%A8%A1%E5%9E%8B/" rel="tag"># IO模型</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/03/31/IOCP%E5%8E%9F%E7%90%86%E5%AD%A6%E4%B9%A0/" rel="prev" title="IOCP原理学习">
+      <i class="fa fa-chevron-left"></i> IOCP原理学习
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="next" title="Go并发编程">
+      Go并发编程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%EF%BC%9A"><span class="nav-number">1.1.</span> <span class="nav-text">总结：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#AIO%E7%9A%84%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">AIO的底层实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Windows-AIO-%E4%B8%8E-Linux-NIO"><span class="nav-number">3.</span> <span class="nav-text">Windows AIO 与 Linux NIO</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Reactor"><span class="nav-number">3.1.</span> <span class="nav-text">Reactor</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95Reactor%EF%BC%88%E4%B8%BB%E7%BA%BF%E7%A8%8B%EF%BC%89%E3%80%81%E5%8D%95%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%B7%A5%E4%BD%9C%E7%BA%BF%E7%A8%8B%EF%BC%89"><span class="nav-number">3.1.1.</span> <span class="nav-text">单Reactor（主线程）、单线程（工作线程）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95Reactor%EF%BC%88%E4%B8%BB%E7%BA%BF%E7%A8%8B%EF%BC%89%E3%80%81%E5%A4%9A%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%B7%A5%E4%BD%9C%E7%BA%BF%E7%A8%8B%EF%BC%89"><span class="nav-number">3.1.2.</span> <span class="nav-text">单Reactor（主线程）、多线程（工作线程）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BB%E4%BB%8EReactor%EF%BC%8C%E5%A4%9A%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%B7%A5%E4%BD%9C%E7%BA%BF%E7%A8%8B%EF%BC%89%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.1.3.</span> <span class="nav-text">主从Reactor，多线程（工作线程）模式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Proactor"><span class="nav-number">3.2.</span> <span class="nav-text">Proactor</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="B34nK0"
+      src="/images/bean.svg">
+  <p class="site-author-name" itemprop="name">B34nK0</p>
+  <div class="site-description" itemprop="description">保持一份热爱，成为一个匠人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">B34nK0</span>
+</div>
+
+        
+<div class="busuanzi-count">
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '38c8134468c7031a4503',
+      clientSecret: '01e1d2a948cb59164f4e98589a1c086cdb3d26ce',
+      repo        : 'b34nk0.github.io',
+      owner       : 'B34nK0',
+      admin       : ['B34nK0'],
+      id          : '4689ea14e46b16ee3b8b9f2537ffb0d5',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>
