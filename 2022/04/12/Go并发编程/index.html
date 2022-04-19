@@ -20,19 +20,19 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="概要从线程模型到协程模型，讲解Go的并发编程 内核线程我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用线程池的方式来进行优化。 用户级线程（协程）尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在">
+  <meta name="description" content="概要从线程模型到协程模型，讲解Go的并发编程">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Go并发编程">
 <meta property="og:url" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/index.html">
 <meta property="og:site_name" content="B34nK0">
-<meta property="og:description" content="概要从线程模型到协程模型，讲解Go的并发编程 内核线程我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用线程池的方式来进行优化。 用户级线程（协程）尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在">
+<meta property="og:description" content="概要从线程模型到协程模型，讲解Go的并发编程">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/GPM%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B.jpg">
 <meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/G%E4%BB%BB%E5%8A%A1%E7%8A%B6%E6%80%81.jpg">
 <meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/G%E4%BB%BB%E5%8A%A1%E7%9A%84%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2.jpg">
 <meta property="og:image" content="http://example.com/2022/04/12/Go%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/P%E7%8A%B6%E6%80%81.jpg">
 <meta property="article:published_time" content="2022-04-12T02:01:26.000Z">
-<meta property="article:modified_time" content="2022-04-12T06:50:47.534Z">
+<meta property="article:modified_time" content="2022-04-19T08:22:20.960Z">
 <meta property="article:author" content="B34nK0">
 <meta property="article:tag" content="Golang">
 <meta name="twitter:card" content="summary">
@@ -182,10 +182,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-04-12 10:01:26 / 修改时间：14:50:47" itemprop="dateCreated datePublished" datetime="2022-04-12T10:01:26+08:00">2022-04-12</time>
+              <time title="创建时间：2022-04-12 10:01:26" itemprop="dateCreated datePublished" datetime="2022-04-12T10:01:26+08:00">2022-04-12</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-19 16:22:20" itemprop="dateModified" datetime="2022-04-19T16:22:20+08:00">2022-04-19</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -215,15 +221,25 @@
 
       
         <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>从线程模型到协程模型，讲解Go的并发编程</p>
-<h1 id="内核线程"><a href="#内核线程" class="headerlink" title="内核线程"></a>内核线程</h1><p>我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。<br>又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用<code>线程池</code>的方式来进行优化。</p>
+<span id="more"></span>
+
+<h1 id="内核线程"><a href="#内核线程" class="headerlink" title="内核线程"></a>内核线程</h1><p>我们知道线程是内核的最小调度单位，应用程序对线程的创建、终止和同步都必须通过内核提供的系统调用来完成，内核可以分别对每一个线程进行调度。</p>
+<p>又因为线程的创建、切换和同步都需要花费更多的内核资源和时间，因此基于这种模型会经常采用<code>线程池</code>的方式来进行优化。</p>
 <h1 id="用户级线程（协程）"><a href="#用户级线程（协程）" class="headerlink" title="用户级线程（协程）"></a>用户级线程（协程）</h1><p>尽管是线程池，也只是优化了创建调度的性能，因此产生了协程的开发概念，协程更多是在用户级维护<code>调度单位</code>(线程)。协程库基本是语言层面提供的，一个进程内的多个<code>线程</code>（协程）对应的是一个内核级线程，而上下文的切换是在用户态进行的。相较于内核级线程的内存占用（MB）来说其内存占用（KB）更小，且不需要cpu在用户态和内核态之间切换。</p>
 <p>此模型下的多线程并不能真正的并发运行。例如，如果某个线程在 I/O 操作过程中被阻塞，那么其所属进程内的所有线程都被阻塞，整个进程将被挂起。</p>
 <h1 id="两级线程模型"><a href="#两级线程模型" class="headerlink" title="两级线程模型"></a>两级线程模型</h1><p>集合内核级线程以及用户级线程模型，让一个进程内的<code>线程</code>（用户级线程）可以绑定到不同的内核级线程，如果用户级线程某个操作阻塞后，绑定的内核线程需要让出CPU时，用户级其他线程绑定的内核线程可以得到cpu获得执行，即整个用户级可以实现并发。</p>
 <h1 id="Go的并发机制"><a href="#Go的并发机制" class="headerlink" title="Go的并发机制"></a>Go的并发机制</h1><p>传统的协程即用户级线程模型，而Go的协程模型区别于传统的协程，其成为Goroutine，其实现的是两级线程模型，依赖的是Go实现的调度器。</p>
 <p>Go 的调度器使用 G、M、P 三个结构体来实现 Goroutine 的调度，也称之为GMP 模型。</p>
-<h2 id="G"><a href="#G" class="headerlink" title="G"></a>G</h2><p>表示 Goroutine。<br>每个 Goroutine 对应一个 G 结构体，G 存储 Goroutine 的运行堆栈、状态以及任务函数，可重用。<br>当 Goroutine 被调离 CPU 时，调度器代码负责把 CPU 寄存器的值保存在 G 对象的成员变量之中。<br>当 Goroutine 被调度起来运行时，调度器代码又负责把 G 对象的成员变量所保存的寄存器的值恢复到 CPU 的寄存器。</p>
-<h2 id="P"><a href="#P" class="headerlink" title="P"></a>P</h2><p>表示逻辑处理器。<br>对 G 来说，P 相当于 CPU 核，G 只有绑定到 P(在 P 的 local runq 中)才能被调度。<br>对 M 来说，P 提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等。<br>它维护一个局部 Goroutine 可运行 G 队列，工作线程优先使用自己的局部运行队列，只有必要时才会去访问全局运行队列，这可以大大减少锁冲突，提高工作线程的并发性，并且可以良好的运用程序的局部性原理</p>
-<h2 id="M"><a href="#M" class="headerlink" title="M"></a>M</h2><p>OS 底层线程的抽象，它本身就与一个内核线程进行绑定，每个工作线程都有唯一的一个 M 结构体的实例对象与之对应，它代表着真正执行计算的资源，由操作系统的调度器调度和管理。<br>M 结构体对象除了记录着工作线程的诸如栈的起止位置、当前正在执行的 Goroutine 以及是否空闲等等状态信息之外，还通过指针维持着与 P 结构体的实例对象之间的绑定关系</p>
+<h2 id="G"><a href="#G" class="headerlink" title="G"></a>G</h2><p>表示 Goroutine。</p>
+<p>每个 Goroutine 对应一个 G 结构体，G 存储 Goroutine 的运行堆栈、状态以及任务函数，可重用。</p>
+<p>当 Goroutine 被调离 CPU 时，调度器代码负责把 CPU 寄存器的值保存在 G 对象的成员变量之中。</p>
+<p>当 Goroutine 被调度起来运行时，调度器代码又负责把 G 对象的成员变量所保存的寄存器的值恢复到 CPU 的寄存器。</p>
+<h2 id="P"><a href="#P" class="headerlink" title="P"></a>P</h2><p>表示逻辑处理器。</p>
+<p>对 G 来说，P 相当于 CPU 核，G 只有绑定到 P(在 P 的 local runq 中)才能被调度。</p>
+<p>对 M 来说，P 提供了相关的执行环境(Context)，如内存分配状态(mcache)，任务队列(G)等。</p>
+<p>它维护一个局部 Goroutine 可运行 G 队列，工作线程优先使用自己的局部运行队列，只有必要时才会去访问全局运行队列，这可以大大减少锁冲突，提高工作线程的并发性，并且可以良好的运用程序的局部性原理</p>
+<h2 id="M"><a href="#M" class="headerlink" title="M"></a>M</h2><p>OS 底层线程的抽象，它本身就与一个内核线程进行绑定，每个工作线程都有唯一的一个 M 结构体的实例对象与之对应，它代表着真正执行计算的资源，由操作系统的调度器调度和管理。</p>
+<p>M 结构体对象除了记录着工作线程的诸如栈的起止位置、当前正在执行的 Goroutine 以及是否空闲等等状态信息之外，还通过指针维持着与 P 结构体的实例对象之间的绑定关系</p>
 <p><img src="GPM%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E6%A8%A1%E5%9E%8B.jpg"></p>
 <p>可以总结为G即是我们的用户任务，我们需要依赖于P和M来执行我们的任务。</p>
 <h3 id="G-1"><a href="#G-1" class="headerlink" title="G"></a>G</h3><p>g 结构体部分源码（src/runtime/runtime2.go）：</p>
@@ -250,6 +266,24 @@
 <figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> p <span class="keyword">struct</span> &#123;</span><br><span class="line"> <span class="comment">// p 的状态</span></span><br><span class="line"> status   <span class="keyword">uint32</span></span><br><span class="line"> <span class="comment">// 对应关联的 M</span></span><br><span class="line"> m        muintptr</span><br><span class="line"> <span class="comment">// 可运行的Goroutine队列，可无锁访问</span></span><br><span class="line"> runqhead <span class="keyword">uint32</span></span><br><span class="line"> runqtail <span class="keyword">uint32</span></span><br><span class="line"> runq     [<span class="number">256</span>]guintptr</span><br><span class="line"> <span class="comment">// 缓存可立即执行的G</span></span><br><span class="line"> runnext   guintptr</span><br><span class="line"> <span class="comment">// 可用的G列表，G状态等于Gdead</span></span><br><span class="line"> gFree <span class="keyword">struct</span> &#123;</span><br><span class="line">  gList</span><br><span class="line">  n <span class="keyword">int32</span></span><br><span class="line"> &#125;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>p结构的status状态描述：<br><img src="P%E7%8A%B6%E6%80%81.jpg"></p>
+<h1 id="关于Go协程的一些问题："><a href="#关于Go协程的一些问题：" class="headerlink" title="关于Go协程的一些问题："></a>关于Go协程的一些问题：</h1><p><code>单核 CPU，开两个 Goroutine，其中一个死循环，会怎么样?</code></p>
+<p>分析问题：</p>
+<ul>
+<li>运行 Go 程序的计算机只有一个单核 CPU。</li>
+<li>两个 Goroutine 在运行。</li>
+<li>一个 Goroutine 死循环。</li>
+</ul>
+<h2 id="单核CPU"><a href="#单核CPU" class="headerlink" title="单核CPU"></a>单核CPU</h2><p>通过上文对GPM模型的分析，单核影响的是P处理器的数量，因为 P 的数量默认是与 CPU 核数（GOMAXPROCS）保持一致的。</p>
+<p>在Go1.14版本之前，如果一个Goroutine一直循环，那么唯一的P会一直在执行。</p>
+<p>1.14版本实现了<code>基于信号的抢占式调度</code></p>
+<p>在 Go 语言中，<code>sysmon</code> 会用于检测抢占。</p>
+<p>sysmon 是 Go 的 Runtime 的系统检测器，sysmon 可进行 forcegc、netpoll、retake 等一系列骚操作.</p>
+<p>retake检测以下两种情况时</p>
+<ul>
+<li>抢占阻塞在系统调用上的 P。</li>
+<li>抢占运行时间过长的 G。</li>
+</ul>
+<p>当满足上述两个场景之一。就会发送信号给 M， M 收到信号后将会休眠正在阻塞的 Goroutine，调用绑定的信号方法，并进行重新调度。</p>
 
     </div>
 
@@ -334,7 +368,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E7%BA%BF%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">内核线程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%8D%8F%E7%A8%8B%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">用户级线程（协程）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%A4%E7%BA%A7%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">两级线程模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go%E7%9A%84%E5%B9%B6%E5%8F%91%E6%9C%BA%E5%88%B6"><span class="nav-number">5.</span> <span class="nav-text">Go的并发机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#G"><span class="nav-number">5.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#P"><span class="nav-number">5.2.</span> <span class="nav-text">P</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#M"><span class="nav-number">5.3.</span> <span class="nav-text">M</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#G-1"><span class="nav-number">5.3.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#M-1"><span class="nav-number">5.3.2.</span> <span class="nav-text">M</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#P-1"><span class="nav-number">5.3.3.</span> <span class="nav-text">P</span></a></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%A6%82%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%85%E6%A0%B8%E7%BA%BF%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">内核线程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%A7%E7%BA%BF%E7%A8%8B%EF%BC%88%E5%8D%8F%E7%A8%8B%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">用户级线程（协程）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%A4%E7%BA%A7%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">两级线程模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go%E7%9A%84%E5%B9%B6%E5%8F%91%E6%9C%BA%E5%88%B6"><span class="nav-number">5.</span> <span class="nav-text">Go的并发机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#G"><span class="nav-number">5.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#P"><span class="nav-number">5.2.</span> <span class="nav-text">P</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#M"><span class="nav-number">5.3.</span> <span class="nav-text">M</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#G-1"><span class="nav-number">5.3.1.</span> <span class="nav-text">G</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#M-1"><span class="nav-number">5.3.2.</span> <span class="nav-text">M</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#P-1"><span class="nav-number">5.3.3.</span> <span class="nav-text">P</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%B3%E4%BA%8EGo%E5%8D%8F%E7%A8%8B%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98%EF%BC%9A"><span class="nav-number">6.</span> <span class="nav-text">关于Go协程的一些问题：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E6%A0%B8CPU"><span class="nav-number">6.1.</span> <span class="nav-text">单核CPU</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 

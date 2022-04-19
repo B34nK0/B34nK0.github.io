@@ -28,7 +28,7 @@
 <meta property="og:description" content="概要在讲到IO时，我们会讲到阻塞&#x2F;非阻塞，即BIO&#x2F;NIO。那么AIO又是什么呢？ AIO即是Asynchronous IO，异步IO。这里的异步是关于用户读取数据来说是同步还是异步，回到BIO及NIO的场景：BIO是创建一个IO句柄后，阻塞等待数据返回NIO在创建完一个IO句柄后，不阻塞等待，而是去做其他事情，当有数据时，用户再进行数据读取，这个时候的读取动作是同步的，即如果缓冲区的数据没读取完">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-04-01T02:13:11.000Z">
-<meta property="article:modified_time" content="2022-04-02T08:28:32.069Z">
+<meta property="article:modified_time" content="2022-04-19T05:55:58.580Z">
 <meta property="article:author" content="B34nK0">
 <meta property="article:tag" content="IO模型">
 <meta name="twitter:card" content="summary">
@@ -185,7 +185,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-02 16:28:32" itemprop="dateModified" datetime="2022-04-02T16:28:32+08:00">2022-04-02</time>
+                <time title="修改时间：2022-04-19 13:55:58" itemprop="dateModified" datetime="2022-04-19T13:55:58+08:00">2022-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -220,6 +220,8 @@
 <p>比如select以及poll模型，这两种模型都是非阻塞IO，即当socket套接字创建完成之后，用户可以去做其他事情，当套接字有事件发生时，用户主动将内核数据同步拷贝到用户态。</p>
 <p>AIO要优化的的即是，当内核数据有数据时，将内核态数据拷贝到用户态，并不需要用户做主动拷贝。</p>
 <h2 id="总结："><a href="#总结：" class="headerlink" title="总结："></a>总结：</h2><p>AIO将IO就绪事件监听和IO数据读取全部交由操作系统完成，也就不需要多路复用器去监听IO就绪事件、也不需要分配线程读取。<br>用户完全不需要关注IO过程，只需要关注拿到数据后的处理。</p>
+<span id="more"></span>
+
 <h1 id="AIO的底层实现"><a href="#AIO的底层实现" class="headerlink" title="AIO的底层实现"></a>AIO的底层实现</h1><p>Windows上是使用完成接口<code>IOCP</code>实现。</p>
 <p>Linux上使用aio调用<code>UnixAsynchronousServerSocketChannelImpl, UnixAsynchronousSocketChannelImpl, SolarisAsynchronousChannelProvider</code>。</p>
 <ul>
